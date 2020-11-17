@@ -1,6 +1,12 @@
 {
   "extends": "@tsconfig/svelte/tsconfig.json",
-  "compilerOptions": {},
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "common": ["../common/"],
+      "common/*": ["../common/*"]
+    }
+  },
   "include": [
     "src/**/*",
     "src/node_modules"

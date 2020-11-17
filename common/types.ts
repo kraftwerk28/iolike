@@ -18,13 +18,6 @@ export const enum MessageType {
   ParseError = 0x80,
 }
 
-// export type MessageData = {
-//   [MessageType.EntityMap]: number[],
-//   [MessageType.AuthReq]: number[],
-//   [MessageType.AuthRes]: number[],
-//   [MessageType.ParseError]: undefined,
-// };
-
 export type AuthReq = {
   username: string
 };
@@ -34,7 +27,7 @@ export type AuthRes = {};
 type M<T extends MessageType, D = any> = { type: T, data?: D };
 
 export type Message =
-  | M<MessageType.ParseError>
+  | M<MessageType.ParseError, undefined>
   | M<MessageType.EntityMap, Entity[]>
   | M<MessageType.AuthReq, AuthReq>
   | M<MessageType.AuthRes, AuthRes>
@@ -43,9 +36,5 @@ export type Message =
 export type UID = number;
 
 export type Connection = { uid: UID, socket: NodeWebSocket };
-
 export type Raw = string; // TODO: needs to be ArrayBuffer
-
-export type Chunk = Set<Entity>;
-
-export type Player = { uid: UID };
+export type Chunk = WeakSet<Entity>;

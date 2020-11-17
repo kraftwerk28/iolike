@@ -1,5 +1,5 @@
-import { Raw } from './types';
-import { getChunkIndex, randomColor, Vec2 } from './utils';
+import { FOOD_SIZE } from './constants';
+import { randomColor, Vec2, WorldGeometry } from './utils';
 
 export enum EntityType {
   Food,
@@ -9,65 +9,79 @@ export enum EntityType {
 export abstract class Entity {
   constructor(
     public pos: Vec2,
+    public size: number,
+    public color: number = randomColor(),
     public vel: Vec2 = new Vec2(0, 0),
   ) { }
 
-  abstract pack(): Raw;
+  abstract pack(): Record<string, any>;
+
+  collides(other: Entity): boolean {
+    const dist = (this.pos.x - other.pos.x) ** 2 +
+      (this.pos.y - other.pos.y) ** 2;
+    return Math.max(this.size, other.size) ** 2 <= dist;
+  }
 }
 
 export class Player extends Entity {
-  public chunkIndex: number;
-  public isActive: boolean;
   constructor(
     public pos: Vec2,
-    public username: string,
-    public color: number,
     public size: number,
+    public username: string,
+    public color: number = randomColor(),
+    public vel: Vec2 = Vec2.zero(),
   ) {
-    super(pos);
+    super(pos, size);
   }
 
   setVel(direction: Vec2) {
     this.vel = direction.normalize();
   }
 
-  update() {
-    this.pos = this.pos.add(this.vel);
-  }
-
-  collides(other: Player): boolean {
-    const dist = (this.pos.x - other.pos.x) ** 2 +
-      (this.pos.y - other.pos.y) ** 2;
-    return Math.max(this.size, other.size) ** 2 <= dist;
+  update(worldGeom: WorldGeometry) {
+    const newPos = this.pos.add(this.vel);
+    const s = worldGeom.worldSize();
+    if (newPos.x > 0 && newPos.y > 0 && newPos.x < s - 1 && newPos.y < s - 1) {
+      this.pos = newPos;
+    }
   }
 
   pack() {
-    const { pos, size, username, color } = this;
-    return JSON.stringify({ pos, size, username, color });
-  }
-
-  static unpack(raw: Raw) {
-    const { pos, size, name, color } = JSON.parse(raw);
-    return new Player(pos, name, color, size);
+    const { pos, size, username, color, vel } = this;
+    return {
+      type: EntityType.Player,
+      pos,
+      size,
+      username,
+      color,
+      vel
+    };
   }
 }
 
 export class Food extends Entity {
   constructor(
     public pos: Vec2,
-    public points: number,
-    public color = randomColor(),
+    public size = FOOD_SIZE,
+    public color: number,
   ) {
-    super(pos);
+    super(pos, size, color);
   }
 
   pack() {
-    const { pos, color, points } = this;
-    return JSON.stringify({ pos, color, points });
+    const { pos, size, color } = this;
+    return { type: EntityType.Food, size, pos, color };
   }
+}
 
-  static unpack(raw: Raw) {
-    const { pos, color, points } = JSON.parse(raw);
-    return new Food(pos, points, color);
+export function unpackEntity(obj: Record<string, any>): Entity {
+  const pos = Vec2.unpack(obj.pos);
+  const { size, color } = obj;
+
+  if (obj.type === EntityType.Food) {
+    return new Food(pos, size, color)
+  } else if (obj.type === EntityType.Player) {
+    const vel = Vec2.unpack(obj.vel);
+    return new Player(pos, size, obj.username, color, vel);
   }
 }

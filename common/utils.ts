@@ -1,4 +1,5 @@
 import { Raw, UID, Chunk } from './types';
+import { INITIAL_RADIUS } from './constants';
 
 const uidGen = (function*() {
   let i = 0;
@@ -11,12 +12,14 @@ export const makeUID = (): UID => uidGen.next().value;
 
 export class Vec2 {
   constructor(public x: number, public y: number) { }
-  pack() {
-    return JSON.stringify([this.x.toFixed(2), this.y.toFixed(2)]);
-  }
-  static unpack(raw: Raw) {
-    const { x, y } = JSON.parse(raw);
+
+  static unpack(obj) {
+    const { x, y } = obj;
     return new Vec2(x, y);
+  }
+
+  pack() {
+    return { x: this.x, y: this.y };
   }
 
   get length() {
@@ -31,52 +34,10 @@ export class Vec2 {
   add(other: Vec2) {
     return new Vec2(this.x + other.x, this.y + other.y);
   }
-}
 
-export function getChunkIndex(
-  position: Vec2,
-  mapSize: number,
-  chunkSize: number,
-): number {
-  const { floor } = Math;
-  const [x, y] = [floor(position.x / chunkSize), floor(position.y / chunkSize)];
-  return y * mapSize + x;
-}
-
-export function getChunkCluster(
-  mapSize: number,
-  chunkIndex: number,
-  chunks: Chunk[],
-) {
-  let center = new Vec2(chunkIndex % mapSize, Math.floor(chunkIndex / mapSize));
-  let positions = [center];
-  const { x, y } = center;
-  if (x > 0) {
-    positions.push(new Vec2(x - 1, y));
+  static zero() {
+    return new Vec2(0, 0);
   }
-  if (y > 0) {
-    positions.push(new Vec2(x, y - 1));
-  }
-  if (x < mapSize - 1) {
-    positions.push(new Vec2(x + 1, y));
-  }
-  if (y < mapSize - 1) {
-    positions.push(new Vec2(x, y + 1));
-  }
-
-  if (x > 0 && y > 0) {
-    positions.push(new Vec2(x - 1, y - 1));
-  }
-  if (x < mapSize - 1 && y > 0) {
-    positions.push(new Vec2(x + 1, y - 1));
-  }
-  if (x > 0 && y < mapSize - 1) {
-    positions.push(new Vec2(x - 1, y + 1));
-  }
-  if (x < mapSize - 1 && y < mapSize - 1) {
-    positions.push(new Vec2(x + 1, y + 1));
-  }
-  return positions.map(vec => chunks[vec.y * mapSize + vec.x]);
 }
 
 export function randomColor() {
@@ -89,4 +50,20 @@ export function randomColor() {
     parts[i] = 0xff - parts[i];
   }
   return parts.reduce((a, c) => a + c);
+}
+
+export function randomPos(
+  { mapSize, chunkSize }: WorldGeometry,
+  playerRadius: number = INITIAL_RADIUS,
+): Vec2 {
+  const { random } = Math;
+  const k = mapSize * chunkSize - playerRadius * 2;
+  return new Vec2(random() * k + playerRadius, random() * k + playerRadius);
+}
+
+export class WorldGeometry {
+  constructor(public mapSize = 8, public chunkSize = 8) { }
+  worldSize() {
+    return this.mapSize * this.chunkSize;
+  }
 }

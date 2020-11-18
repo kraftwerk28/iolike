@@ -3,7 +3,7 @@ import { Data } from 'ws';
 import { Vec2 } from './utils';
 import { Entity, unpackEntity } from './entities';
 
-export function parse<T extends MessageType>(raw: Data): Message {
+export function parse(raw: Data): Message {
   try {
     if (typeof raw !== 'string') {
       throw new Error;
@@ -20,6 +20,7 @@ export function parse<T extends MessageType>(raw: Data): Message {
       }
       default:
         return { type, data };
+
     }
 
   } catch (err) {

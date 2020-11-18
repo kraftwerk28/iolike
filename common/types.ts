@@ -2,7 +2,7 @@ import NodeWebSocket from 'ws';
 import { Entity } from './entities';
 import { Vec2 } from './utils';
 
-export const enum MessageType {
+export enum MessageType {
   // Server -> Client
   /** Array of players sent to client */
   EntityMap = 0x00,

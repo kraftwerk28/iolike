@@ -1,12 +1,13 @@
 import { Entity, Player } from 'common/entities';
 import { WorldGeometry, Vec2 } from 'common/utils';
+import { log } from './logger';
 
 export class ChunkPool {
   private chunks: Set<Entity>[];
   private chunkIndexes: Map<Entity, number> = new Map;
 
   constructor(public worldGeom: WorldGeometry) {
-    this.chunks = Array(worldGeom.worldSize())
+    this.chunks = Array(worldGeom.mapSize ** 2)
       .fill(null)
       .map(() => new Set);
   }
@@ -41,7 +42,7 @@ export class ChunkPool {
     const x = index % this.worldGeom.mapSize;
     const y = Math.floor(index / this.worldGeom.mapSize);
     const s = this.worldGeom.mapSize - 1;
-    const positions = [];
+    const positions: Vec2[] = [new Vec2(x, y)];
     if (x > 0) {
       positions.push(new Vec2(x - 1, y));
     }
@@ -66,7 +67,7 @@ export class ChunkPool {
     if (x < s && y < s) {
       positions.push(new Vec2(x + 1, y + 1));
     }
-    return positions;
+    return positions.map(vec => vec.y * this.worldGeom.mapSize + vec.x);
   }
 
   *playersWithChunks(): Generator<[Player, Entity[]]> {

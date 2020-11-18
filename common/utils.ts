@@ -19,7 +19,10 @@ export class Vec2 {
   }
 
   pack() {
-    return { x: this.x, y: this.y };
+    return {
+      x: parseFloat(this.x.toFixed(2)),
+      y: parseFloat(this.y.toFixed(2)),
+    };
   }
 
   get length() {
@@ -62,7 +65,7 @@ export function randomPos(
 }
 
 export class WorldGeometry {
-  constructor(public mapSize = 8, public chunkSize = 8) { }
+  constructor(public mapSize = 1, public chunkSize = 8) { }
   worldSize() {
     return this.mapSize * this.chunkSize;
   }

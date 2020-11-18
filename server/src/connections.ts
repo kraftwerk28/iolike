@@ -6,11 +6,13 @@ import WebSocket from 'ws';
 export class Connections {
   private player2conn: Map<Player, WebSocket> = new Map;
   private conn2player: Map<WebSocket, Player> = new Map;
-  public connCount = 0;
+  // public connCount = 0;
+  get connCount() {
+    return this.conn2player.size;
+  }
 
   add(socket: WebSocket, player?: Player) {
     this.conn2player.set(socket, player);
-    this.connCount++;
     if (player) {
       this.player2conn.set(player, socket);
     }
@@ -19,7 +21,6 @@ export class Connections {
   remove(socket: WebSocket) {
     const player = this.conn2player.get(socket);
     this.conn2player.delete(socket);
-    this.connCount--;
     if (player) {
       this.player2conn.delete(player);
     }
@@ -33,8 +34,13 @@ export class Connections {
     return this.conn2player.get(socket);
   }
 
+  iterPlayers() {
+    return this.player2conn.keys();
+  }
+
   send(player: Player, msg: Message) {
     const socket = this.getSocket(player);
+    if (!socket) return
     const raw = serialize(msg);
     socket.send(raw);
   }

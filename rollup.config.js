@@ -16,6 +16,9 @@ const isDev = process.env.NODE_ENV === 'development';
 const outputPath = path.resolve(__dirname, 'build/');
 
 const serverArgs = [];
+const tsconfigDefaults = {
+  compilerOptions: { sourceMap: isDev },
+};
 
 function runServer() {
   let serverProc;
@@ -48,16 +51,20 @@ const client = {
       },
       preprocess: preprocess(),
     }),
-    ts({ tsconfig: 'client/tsconfig.json' }),
-    resolve({ browser: true, dedupe: ['svelte'] }),
-    // commonjs(),
+    ts({ tsconfig: 'client/tsconfig.json', tsconfigDefaults }),
+    resolve({
+      browser: true,
+      dedupe: ['svelte'],
+      extensions: ['.mjs', '.js', '.json', '.node', '.ts'],
+    }),
     isDev && livereload('public/'),
     // !isDev && terser(),
     copy({
       targets: [
-        { src: 'app/public/*', dest: path.resolve(outputPath, 'public/') },
+        { src: 'client/public/*', dest: path.resolve(outputPath, 'public/') },
       ],
     }),
+    cjs(),
   ],
   watch: { clearScreen: false },
 };
@@ -70,7 +77,7 @@ const server = {
     format: 'cjs',
   },
   plugins: [
-    ts({ tsconfig: 'server/tsconfig.json' }),
+    ts({ tsconfig: 'server/tsconfig.json', tsconfigDefaults }),
     resolve({ browser: false }),
     cjs(),
     isDev && runServer(),

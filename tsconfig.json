@@ -1,6 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "importsNotUsedAsValues": "remove"
+    "esModuleInterop": true,
+    "baseUrl": "./",
+    "paths": {
+      "common": ["common/"],
+      "common/*": ["common/*"]
+    }
   }
 }

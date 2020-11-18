@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import { MessageType, UID } from 'common/types';
 import { randomColor, randomPos, WorldGeometry } from 'common/utils';
 import { Food, Player } from 'common/entities';
-import { FOOD_GAIN, INITIAL_RADIUS } from 'common/constants';
+import { FOOD_GAIN, INITIAL_RADIUS, TPS } from 'common/constants';
 import { log } from './logger';
 import { parse } from 'common/parser';
 import { ChunkPool } from './chunk-pool';
@@ -12,13 +12,13 @@ export class GameState {
   private connections = new Connections;
   private chunkPool: ChunkPool;
 
-  private players: Map<UID, Player> = new Map;
+  // private players: Map<UID, Player> = new Map;
   private food: Set<Food> = new Set;
 
   private worldGeometry = new WorldGeometry;
   private maxFoodCount = this.worldGeometry.chunkSize ** 2 *
     this.worldGeometry.mapSize ** 2;
-  private tickTime = 1000 / 20;
+  private tickTime = 1000 / TPS;
   private tickTimer: NodeJS.Timeout;
 
   constructor() {
@@ -26,20 +26,22 @@ export class GameState {
   }
 
   onNewConnection(socket: WebSocket) {
-    log.info('all conns: %d', this.connections.connCount);
     this.connections.add(socket);
     socket
       .on('close', (code, reason) =>
         this.onCloseConnection(socket, code, reason)
       )
       .on('message', (message) => this.onSocketMessage(socket, message));
+    log.info('Total connections: %d', this.connections.connCount);
   }
 
   onCloseConnection(socket: WebSocket, code: number, reason: string) {
+    const player = this.connections.getPlayer(socket);
     this.connections.remove(socket);
+    this.chunkPool.delete(player);
     // this.players.delete(uid);
     log.info(
-      'closed; code: %d, reason: %s, all conns: %d',
+      'Connection closed; code: %d, reason: %s, total conns: %d',
       code,
       reason,
       this.connections.connCount,
@@ -57,6 +59,7 @@ export class GameState {
           message.data.username,
         );
         this.connections.add(socket, player);
+        log.info('New player %s', message.data.username);
         // this.players.set(uid, player);
         break;
       }
@@ -74,7 +77,7 @@ export class GameState {
     const defeatedPlayers = [];
 
     // Update positions
-    for (const player of this.players.values()) {
+    for (const player of this.connections.iterPlayers()) {
       const eatenPlayers: UID[] = [];
       const eatenFood: Food[] = [];
 
@@ -88,10 +91,10 @@ export class GameState {
         }
       }
 
-      for (const [otherUID, otherPlayer] of this.players.entries()) {
+      for (const otherPlayer of this.connections.iterPlayers()) {
         if (player === otherPlayer) continue;
         if (player.collides(otherPlayer) && player.size > otherPlayer.size) {
-          eatenPlayers.push(otherUID);
+          // eatenPlayers.push(otherUID);
           player.size += otherPlayer.size;
         }
       }
@@ -99,9 +102,9 @@ export class GameState {
       for (const food of eatenFood) {
         this.food.delete(food);
       }
-      for (const playerID of eatenPlayers) {
-        this.players.delete(playerID);
-      }
+      // for (const playerID of eatenPlayers) {
+      //   this.players.delete(playerID);
+      // }
     }
 
     // Spawn food
@@ -117,6 +120,7 @@ export class GameState {
 
   private syncClients() {
     for (const [player, allEntities] of this.chunkPool.playersWithChunks()) {
+      // log.info('Sending tick to %s', player.username);
       this.connections.send(player, {
         type: MessageType.EntityMap,
         data: allEntities,
@@ -128,7 +132,7 @@ export class GameState {
     this.tickTimer = setInterval(this.tick.bind(this), this.tickTime);
     return () => {
       clearInterval(this.tickTimer);
-    }
+    };
   }
 
   handleCommand(command: string) { }

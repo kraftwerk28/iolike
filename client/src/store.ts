@@ -35,13 +35,13 @@ function gameStore() {
   });
 
   ws.addEventListener('message', (ev) => {
-    const { type, data } = parse(ev.data);
-    switch (type) {
+    const msg = parse(ev.data);
+    switch (msg.type) {
       case MessageType.AuthRes:
         setState({ authorized: true });
         break;
       case MessageType.EntityMap:
-        setState({ entities: data });
+        setState({ entities: msg.data });
         break;
       default:
         break;

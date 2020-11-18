@@ -1,2 +1,5 @@
 import App from './App.svelte';
-new App({ target: document.body });
+
+window.addEventListener('DOMContentLoaded', () => {
+  new App({ target: document.body });
+});

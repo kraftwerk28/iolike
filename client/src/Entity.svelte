@@ -1,8 +1,8 @@
-<script lang="ts">
+<script>
   import { Entity, num2csscolor, Player } from 'common';
   import { store } from './store';
 
-  export let entity: Entity;
+  export let entity;
 
   let style = '';
   $: {
@@ -28,6 +28,10 @@
     position: absolute;
     border-radius: 50%;
     text-align: center;
+    /* mix-blend-mode: difference; */
+    color: white;
+    font-size: 2em;
+    font-weight: bold;
   }
 </style>
 

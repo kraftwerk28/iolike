@@ -1,21 +1,21 @@
-import { Entity, Player } from 'common/entities';
-import { WorldGeometry, Vec2 } from 'common/utils';
+import { Entity, Player, WorldGeometry, Vec2 } from 'common';
 import { log } from './logger';
 
 export class ChunkPool {
   private chunks: Set<Entity>[];
-  private chunkIndexes: Map<Entity, number> = new Map;
+  private chunkIndexes: Map<Entity, number> = new Map();
 
   constructor(public worldGeom: WorldGeometry) {
     this.chunks = Array(worldGeom.mapSize ** 2)
       .fill(null)
-      .map(() => new Set);
+      .map(() => new Set());
   }
 
   put(entity: Entity) {
     const prevIndex = this.chunkIndexes.get(entity);
     if (prevIndex) {
       this.chunkIndexes.delete(entity);
+      this.chunks[prevIndex].delete(entity);
     }
     const chunkIndex = this.getChunkIndex(entity.pos, this.worldGeom);
     this.chunks[chunkIndex].add(entity);
@@ -24,13 +24,14 @@ export class ChunkPool {
 
   delete(entity: Entity) {
     const index = this.chunkIndexes.get(entity);
+    log.info('Removing player from index %d', index);
     if (!index) return;
     this.chunks[index].delete(entity);
   }
 
   private getChunkIndex(
     position: Vec2,
-    { mapSize, chunkSize }: WorldGeometry,
+    { mapSize, chunkSize }: WorldGeometry
   ): number {
     const { floor } = Math;
     const x = floor(position.x / chunkSize);
@@ -67,14 +68,14 @@ export class ChunkPool {
     if (x < s && y < s) {
       positions.push(new Vec2(x + 1, y + 1));
     }
-    return positions.map(vec => vec.y * this.worldGeom.mapSize + vec.x);
+    return positions.map((vec) => vec.y * this.worldGeom.mapSize + vec.x);
   }
 
   *playersWithChunks(): Generator<[Player, Entity[]]> {
     for (const [idx, chunk] of this.chunks.entries()) {
       const indexes = this.getClusterIndexes(idx);
       const chunks: Entity[] = indexes
-        .map(i => this.chunks[i])
+        .map((i) => this.chunks[i])
         .reduce((acc, c) => acc.concat(Array.from(c)), []);
       for (const entity of chunk.values()) {
         if (!(entity instanceof Player)) continue;

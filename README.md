@@ -3,7 +3,7 @@
 1. Show help:
 
 ```bash
-node build/index --help
+node index.js --help
 ```
 
 2. Для збірки:

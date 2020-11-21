@@ -5,14 +5,19 @@ import { WorldGeometry } from './utils';
 
 export enum MessageType {
   // Server -> Client
-  /** Array of players sent to client */
+  /** Array of entities sent to client */
   SyncEntities = 0x00,
+  /** Request authorization */
   AuthRes = 0x01,
+  /** @deprecated, all info sent through SyncEntities */
   SyncPositions = 0x02,
 
   // Client -> Server
+  /** Response for auth */
   AuthReq = 0x10,
+  /** Player changes direction */
   Direction = 0x20,
+  /** Player shoots food */
   Shoot = 0x30,
 
   // Both

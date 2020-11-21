@@ -6,7 +6,7 @@ import WebSocket from 'ws';
 export class Connections {
   private player2conn: Map<Player, WebSocket> = new Map;
   private conn2player: Map<WebSocket, Player> = new Map;
-  // public connCount = 0;
+
   get connCount() {
     return this.conn2player.size;
   }

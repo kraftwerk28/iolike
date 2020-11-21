@@ -74,7 +74,11 @@ export class Player extends Entity implements Serializable {
 }
 
 export class Food extends Entity {
-  constructor(public pos: Vec2, public size = FOOD_SIZE, public color: number) {
+  constructor(
+    public pos: Vec2,
+    public size = FOOD_SIZE,
+    public color: number = randomColor()
+  ) {
     super(size, pos, color);
   }
 
@@ -86,29 +90,5 @@ export class Food extends Entity {
     buf.writeUInt32BE(size, 1);
     buf.writeUInt32BE(color, 1 + 4);
     return Buffer.concat([buf, this.pos.pack()]);
-  }
-}
-
-export function unpackEntity(raw: Raw): Entity {
-  const entityType = raw.readUInt8(0);
-  if (entityType === 0) {
-    // type | id | username | size | color | ...positions =
-    const id = raw.readUInt32BE(1);
-    const username = raw
-      .slice(1 + 4, 1 + 4 + 8)
-      .toString()
-      .replace(/\0/g, '');
-    const size = raw.readUInt32BE(1 + 4 + 8);
-    const color = raw.readUInt32BE(1 + 4 + 8 + 4);
-    const pos = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4));
-    const vel = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4 + 8));
-    const acc = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4 + 8 + 8));
-
-    return new Player({ size, pos, username, vel, acc, color, id });
-  } else if (entityType === 1) {
-    const size = raw.readUInt32BE(1);
-    const color = raw.readUInt32BE(1 + 4);
-    const pos = Vec2.unpack(raw.slice(1 + 4 + 4));
-    return new Food(pos, size, color);
   }
 }

@@ -1,12 +1,15 @@
 <script>
-  import { Entity, num2csscolor, Player } from 'common';
+  import { Entity, num2csscolor, Player, Food } from 'common';
   import { store } from './store';
 
   export let entity;
 
   let style = '';
   $: {
-    const size = entity.size;
+    let size = entity.size;
+    if (entity instanceof Food) {
+      size += 10;
+    }
     const x = entity.pos.x - entity.size + $store.vpOffset.x;
     const y = entity.pos.y - entity.size + $store.vpOffset.y;
     const cl = num2csscolor(entity.color);

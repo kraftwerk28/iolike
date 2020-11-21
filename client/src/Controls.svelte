@@ -27,6 +27,7 @@
       disabled={$store.authorized}
       placeholder="username"
       bind:value={username} />
+    <button type="submit">Start</button>
   </form>
   <label>
     Show outline:

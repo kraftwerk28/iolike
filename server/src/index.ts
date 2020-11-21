@@ -5,9 +5,11 @@ import { Server as WsServer } from 'ws';
 
 import { log } from './logger';
 import { GameState } from './game';
+import { parseArgs } from './args';
 
 async function main() {
-  const gameState = new GameState();
+  const args = parseArgs()
+  const gameState = new GameState(args);
   const port = process.env.PORT || 8080;
   const publicPath = process.env.PUBLIC || 'public';
 
@@ -19,8 +21,8 @@ async function main() {
     .on('connection', (socket) => gameState.onNewConnection(socket))
     .on('error', (err) => log.error('WS error', err));
 
-  app.listen(port, '0.0.0.0').then(() => {
-    log.info('server listening');
+  app.listen(port).then(() => {
+    log.info('server listening %s', `http://localhost:${port}`);
   });
 
   gameState.run();

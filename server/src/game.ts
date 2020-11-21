@@ -1,5 +1,4 @@
 import WebSocket from 'ws';
-import { makeUID } from 'common/utils';
 import { log } from './logger';
 import { parse } from 'common/parser';
 import { ChunkPool } from './chunk-pool';
@@ -12,25 +11,29 @@ import {
   randomColor,
   randomPos,
   Vec2,
-  INITIAL_RADIUS, SERVER_TPS, FOOD_SPAWN_CHANCE, FOOD_SIZE
+  makeUID,
+  INITIAL_RADIUS, FOOD_SIZE,
 } from 'common';
+import { Args } from './args';
 
 export class GameState {
   private connections = new Connections;
   private chunkPool: ChunkPool;
-
-  // private players: Map<UID, Player> = new Map;
   private food: Set<Food> = new Set;
-
-  private worldGeometry = new WorldGeometry;
-  private maxFoodCount = this.worldGeometry.chunkSize ** 2 *
-    this.worldGeometry.mapSize ** 2;
-  private tickTime = 1000 / SERVER_TPS;
+  private worldGeometry: WorldGeometry;
+  private maxFoodCount: number; ;
+  private tickTime: number;
   private tickTimer: NodeJS.Timeout;
   private tickTimestamp = Date.now();
+  private foodSpawnChance: number;
 
-  constructor() {
+  constructor(args: Args) {
+    this.worldGeometry = new WorldGeometry(args.worldsize, args.chunksize);
+    this.maxFoodCount =
+      this.worldGeometry.chunkSize ** 2 * this.worldGeometry.mapSize ** 2;
     this.chunkPool = new ChunkPool(this.worldGeometry);
+    this.tickTime = 1000 / args.tps;
+    this.foodSpawnChance = args.foodchance;
   }
 
   onNewConnection(socket: WebSocket) {
@@ -47,7 +50,7 @@ export class GameState {
     const player = this.connections.getPlayer(socket);
     this.connections.remove(socket);
     this.chunkPool.delete(player);
-    // this.players.delete(uid);
+
     log.warn(
       'connection closed; code: `%d`, reason: `%s`',
       code,
@@ -86,9 +89,7 @@ export class GameState {
       case MessageType.Shoot: {
         const player = this.connections.getPlayer(socket);
         player.size -= FOOD_SIZE;
-        const foodPos = player.pos.add(
-          player.vel.mul(this.worldGeometry.chunkSize)
-        );
+        const foodPos = player.pos.add(player.vel.mul(player.size * 2));
         const foodPiece = new Food(foodPos, FOOD_SIZE, randomColor());
         this.chunkPool.put(foodPiece);
         this.food.add(foodPiece);
@@ -99,10 +100,7 @@ export class GameState {
   }
 
   tick() {
-    const now = Date.now();
-    const dt = now - this.tickTimestamp;
-    this.tickTimestamp = now;
-
+    const dt = this.deltaTime();
     // Update positions
     for (const player of this.connections.iterPlayers()) {
       player.update(this.worldGeometry, dt);
@@ -110,7 +108,7 @@ export class GameState {
 
       for (const food of this.food.values()) {
         if (player.collides(food)) {
-          player.size += food.size / 10;
+          player.size += food.size;
           this.food.delete(food);
           this.chunkPool.delete(food);
         }
@@ -129,7 +127,7 @@ export class GameState {
 
     // Spawn food
     if (
-      Math.random() < FOOD_SPAWN_CHANCE &&
+      Math.random() < this.foodSpawnChance &&
       this.food.size < this.maxFoodCount
     ) {
       const pos = randomPos(this.worldGeometry);
@@ -137,6 +135,7 @@ export class GameState {
       this.chunkPool.put(food);
       this.food.add(food);
     }
+
     this.syncClients();
   }
 
@@ -154,6 +153,13 @@ export class GameState {
     return () => {
       clearInterval(this.tickTimer);
     };
+  }
+
+  private deltaTime() {
+    const now = Date.now();
+    const dt = now - this.tickTimestamp;
+    this.tickTimestamp = now;
+    return dt;
   }
 
   handleCommand(command: string) { }

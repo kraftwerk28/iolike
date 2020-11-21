@@ -1,9 +1,33 @@
 import { Message, MessageType, Raw } from './types';
 import { Data } from 'ws';
 import { Vec2 } from './vec';
-import { Food, Player, unpackEntity } from './entities';
+import { Entity, Food, Player } from './entities';
 import { Buffer } from 'buffer';
 import { WorldGeometry } from './utils';
+
+export function unpackEntity(raw: Raw): Entity {
+  const entityType = raw.readUInt8(0);
+  if (entityType === 0) {
+    // type | id | username | size | color | ...positions =
+    const id = raw.readUInt32BE(1);
+    const username = raw
+      .slice(1 + 4, 1 + 4 + 8)
+      .toString()
+      .replace(/\0/g, '');
+    const size = raw.readUInt32BE(1 + 4 + 8);
+    const color = raw.readUInt32BE(1 + 4 + 8 + 4);
+    const pos = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4));
+    const vel = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4 + 8));
+    const acc = Vec2.unpack(raw.slice(1 + 4 + 8 + 4 + 4 + 8 + 8));
+
+    return new Player({ size, pos, username, vel, acc, color, id });
+  } else if (entityType === 1) {
+    const size = raw.readUInt32BE(1);
+    const color = raw.readUInt32BE(1 + 4);
+    const pos = Vec2.unpack(raw.slice(1 + 4 + 4));
+    return new Food(pos, size, color);
+  }
+}
 
 export function parse(_raw: Data): Message {
   const raw = Buffer.from(_raw);
@@ -51,6 +75,10 @@ export function parse(_raw: Data): Message {
         const mapSize = raw.readUInt32BE(offset);
         const worldGeom = new WorldGeometry(mapSize, chunkSize);
         return { type, data: { id, worldGeom } };
+      }
+
+      case MessageType.Shoot: {
+        return { type };
       }
 
       default:

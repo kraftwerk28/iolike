@@ -1,5 +1,5 @@
 import { Raw, UID, Chunk } from './types';
-import { INITIAL_RADIUS } from './constants';
+import { INITIAL_RADIUS, MAP_SIZE, CHUNK_SIZE } from './constants';
 import { Vec2 } from './vec';
 
 const uidGen = (function*() {
@@ -33,7 +33,7 @@ export function randomPos(
 }
 
 export class WorldGeometry {
-  constructor(public mapSize = 4, public chunkSize = 128) { }
+  constructor(public mapSize = MAP_SIZE, public chunkSize = CHUNK_SIZE) { }
   worldSize() {
     return this.mapSize * this.chunkSize;
   }

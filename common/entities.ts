@@ -34,18 +34,20 @@ export class Player extends Entity implements Serializable {
   public acc: Vec2 = Vec2.zero();
   public color: number = randomColor();
 
-
   constructor(init: Partial<Player>) {
     super(init.size, init.pos, init.color);
     Object.assign(this, init);
   }
 
   setVel(direction: Vec2) {
-    this.vel = direction.normalize();
+    this.vel = direction.normalize().mul(2);
   }
 
-  update(worldGeom: WorldGeometry) {
-    const newPos = new Vec2(this.pos.x + this.vel.x, this.pos.y + this.vel.y);
+  update(worldGeom: WorldGeometry, deltaTime: number) {
+    const newPos = new Vec2(
+      this.pos.x + this.vel.x * deltaTime * PLAYER_SPEED_SCALE,
+      this.pos.y + this.vel.y * deltaTime * PLAYER_SPEED_SCALE,
+    );
     const s = worldGeom.worldSize();
     if (newPos.x - this.size < 0) newPos.x = this.size;
     if (newPos.x + this.size > s) newPos.x = s - this.size;
@@ -55,7 +57,7 @@ export class Player extends Entity implements Serializable {
   }
 
   pack(): Raw {
-    // type 1 | id 4 | username 8 | size 4 | color 4 | ...positions = 45
+    // type 1 | id 4 | username 8 | size 4 | color 4 | ...positions = 45 bytes
     const buf = Buffer.alloc(1 + 4 + 8 + 4 + 4);
     buf.writeUInt8(0);
     buf.writeUInt32BE(this.id, 1);
@@ -69,17 +71,6 @@ export class Player extends Entity implements Serializable {
       this.acc.pack(),
     ]);
   }
-
-  // packPosition(): Raw {
-  //   const idbuf = Buffer.alloc(4);
-  //   idbuf.writeUInt32BE(this.id);
-  //   return Buffer.concat([
-  //     idbuf,
-  //     this.pos.pack(),
-  //     this.vel.pack(),
-  //     this.acc.pack(),
-  //   ]);
-  // }
 }
 
 export class Food extends Entity {

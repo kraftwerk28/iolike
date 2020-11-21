@@ -24,6 +24,10 @@ export class Vec2 implements Serializable {
     return new Vec2(this.x / l, this.y / l);
   }
 
+  mul(n: number) {
+    return new Vec2(this.x * n, this.y * n);
+  }
+
   add(other: Vec2) {
     return new Vec2(this.x + other.x, this.y + other.y);
   }

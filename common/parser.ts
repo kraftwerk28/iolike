@@ -3,6 +3,7 @@ import { Data } from 'ws';
 import { Vec2 } from './vec';
 import { Food, Player, unpackEntity } from './entities';
 import { Buffer } from 'buffer';
+import { WorldGeometry } from './utils';
 
 export function parse(_raw: Data): Message {
   const raw = Buffer.from(_raw);
@@ -44,7 +45,12 @@ export function parse(_raw: Data): Message {
 
       case MessageType.AuthRes: {
         const id = raw.readUInt32BE(offset);
-        return { type, data: { id } };
+        offset += 4;
+        const chunkSize = raw.readUInt32BE(offset);
+        offset += 4;
+        const mapSize = raw.readUInt32BE(offset);
+        const worldGeom = new WorldGeometry(mapSize, chunkSize);
+        return { type, data: { id, worldGeom } };
       }
 
       default:
@@ -77,8 +83,10 @@ export function serialize(msg: Message): Raw {
     }
 
     case MessageType.AuthRes: {
-      const body = Buffer.alloc(4);
+      const body = Buffer.alloc(4 + 4 + 4);
       body.writeUInt32BE(msg.data.id);
+      body.writeUInt32BE(msg.data.worldGeom.chunkSize, 4);
+      body.writeUInt32BE(msg.data.worldGeom.mapSize, 8);
       return Buffer.concat([header, body]);
     }
 
@@ -87,5 +95,8 @@ export function serialize(msg: Message): Raw {
       body.write(msg.data.username, 0, 8);
       return Buffer.concat([header, body]);
     }
+
+    case MessageType.Shoot:
+      return Buffer.from([msg.type]);
   }
 }

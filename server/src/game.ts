@@ -6,14 +6,13 @@ import { ChunkPool } from './chunk-pool';
 import { Connections } from './connections';
 import {
   MessageType,
-  UID,
   WorldGeometry,
   Food,
   Player,
   randomColor,
   randomPos,
   Vec2,
-  INITIAL_RADIUS, TPS, FOOD_SPAWN_CHANCE, FOOD_SIZE
+  INITIAL_RADIUS, SERVER_TPS, FOOD_SPAWN_CHANCE, FOOD_SIZE
 } from 'common';
 
 export class GameState {
@@ -26,8 +25,9 @@ export class GameState {
   private worldGeometry = new WorldGeometry;
   private maxFoodCount = this.worldGeometry.chunkSize ** 2 *
     this.worldGeometry.mapSize ** 2;
-  private tickTime = 1000 / TPS;
+  private tickTime = 1000 / SERVER_TPS;
   private tickTimer: NodeJS.Timeout;
+  private tickTimestamp = Date.now();
 
   constructor() {
     this.chunkPool = new ChunkPool(this.worldGeometry);
@@ -40,7 +40,7 @@ export class GameState {
         this.onCloseConnection(socket, code, reason)
       )
       .on('message', (message) => this.onSocketMessage(socket, message));
-    log.info('Total connections: %d', this.connections.connCount);
+    log.info('%d connections', this.connections.connCount);
   }
 
   onCloseConnection(socket: WebSocket, code: number, reason: string) {
@@ -48,12 +48,12 @@ export class GameState {
     this.connections.remove(socket);
     this.chunkPool.delete(player);
     // this.players.delete(uid);
-    log.info(
-      'Connection closed; code: %d, reason: %s, total conns: %d',
+    log.warn(
+      'connection closed; code: `%d`, reason: `%s`',
       code,
       reason,
-      this.connections.connCount,
     );
+    log.info('%d connections', this.connections.connCount);
   }
 
   onSocketMessage(socket: WebSocket, raw: WebSocket.Data) {
@@ -71,9 +71,10 @@ export class GameState {
           id,
         });
         this.connections.add(socket, player);
+        const data = { id, worldGeom: this.worldGeometry };
         this.connections
-          .send(player, { type: MessageType.AuthRes, data: { id } });
-        log.info('New player %s', message.data.username);
+          .send(player, { type: MessageType.AuthRes, data });
+        log.info('new player `%s`', message.data.username);
         // this.players.set(uid, player);
         break;
       }
@@ -82,26 +83,36 @@ export class GameState {
         player.setVel(message.data);
         break;
       }
+      case MessageType.Shoot: {
+        const player = this.connections.getPlayer(socket);
+        player.size -= FOOD_SIZE;
+        const foodPos = player.pos.add(
+          player.vel.mul(this.worldGeometry.chunkSize)
+        );
+        const foodPiece = new Food(foodPos, FOOD_SIZE, randomColor());
+        this.chunkPool.put(foodPiece);
+        this.food.add(foodPiece);
+      }
       default:
         break;
     }
   }
 
   tick() {
-    const defeatedPlayers = [];
+    const now = Date.now();
+    const dt = now - this.tickTimestamp;
+    this.tickTimestamp = now;
 
     // Update positions
     for (const player of this.connections.iterPlayers()) {
-      const eatenPlayers: UID[] = [];
-      const eatenFood: Food[] = [];
-
-      player.update(this.worldGeometry);
+      player.update(this.worldGeometry, dt);
       this.chunkPool.put(player);
 
       for (const food of this.food.values()) {
         if (player.collides(food)) {
-          eatenFood.push(food);
           player.size += food.size / 10;
+          this.food.delete(food);
+          this.chunkPool.delete(food);
         }
       }
 
@@ -114,31 +125,23 @@ export class GameState {
           this.connections.disconnect(otherPlayer);
         }
       }
-
-      for (const food of eatenFood) {
-        this.food.delete(food);
-        this.chunkPool.delete(food);
-      }
-
-      // for (const playerID of eatenPlayers) {
-      //   this.players.delete(playerID);
-      // }
     }
 
     // Spawn food
-    if (Math.random() < FOOD_SPAWN_CHANCE && this.food.size < this.maxFoodCount) {
+    if (
+      Math.random() < FOOD_SPAWN_CHANCE &&
+      this.food.size < this.maxFoodCount
+    ) {
       const pos = randomPos(this.worldGeometry);
       const food = new Food(pos, FOOD_SIZE, randomColor());
       this.chunkPool.put(food);
       this.food.add(food);
     }
-
     this.syncClients();
   }
 
   private syncClients() {
     for (const [player, allEntities] of this.chunkPool.playersWithChunks()) {
-      // log.info('Sending tick to %s', player.username);
       this.connections.send(player, {
         type: MessageType.SyncEntities,
         data: allEntities,

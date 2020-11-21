@@ -20,7 +20,7 @@ async function main() {
     .on('error', (err) => log.error('WS error', err));
 
   app.listen(port, '0.0.0.0').then(() => {
-    log.info('Server listening');
+    log.info('server listening');
   });
 
   gameState.run();

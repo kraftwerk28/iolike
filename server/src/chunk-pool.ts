@@ -1,14 +1,15 @@
 import { Entity, Player, WorldGeometry, Vec2 } from 'common';
-import { log } from './logger';
 
 export class ChunkPool {
+
   private chunks: Set<Entity>[];
-  private chunkIndexes: Map<Entity, number> = new Map();
+  private chunkIndexes: Map<Entity, number>;
 
   constructor(public worldGeom: WorldGeometry) {
     this.chunks = Array(worldGeom.mapSize ** 2)
       .fill(null)
       .map(() => new Set());
+    this.chunkIndexes = new Map;
   }
 
   put(entity: Entity) {
@@ -24,7 +25,6 @@ export class ChunkPool {
 
   delete(entity: Entity) {
     const index = this.chunkIndexes.get(entity);
-    log.info('Removing player from index %d', index);
     if (!index) return;
     this.chunks[index].delete(entity);
   }

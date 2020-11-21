@@ -1,25 +1,35 @@
 import { writable } from 'svelte/store';
 import { MessageType, Message } from 'common/types';
 import { parse, serialize } from 'common/parser';
-import type { Entity } from 'common/entities';
-import type { Vec2 } from 'common/utils';
+import { Entity, Player } from 'common/entities';
+import { Vec2 } from 'common/vec';
 
 type GameState = {
   wsOpen: boolean,
   authorized: boolean,
   entities: Entity[],
+  playerID: number,
+  camSize: Vec2,
+  // camCenter: Vec2,
+  vpOffset: Vec2,
+};
+
+const initial: GameState = {
+  wsOpen: false,
+  authorized: false,
+  entities: [],
+  playerID: 0,
+  camSize: new Vec2(500, 500),
+  vpOffset: Vec2.zero(),
 };
 
 function gameStore() {
   const ws = new WebSocket('ws://localhost:8080');
-  const { update, set, subscribe } = writable<GameState>({
-    wsOpen: false,
-    authorized: false,
-    entities: [],
-  });
+  ws.binaryType = 'arraybuffer';
+  const { update, set, subscribe } = writable<GameState>(initial);
 
   function setState(s: Partial<GameState>) {
-    update(state => ({ ...state, ...s }));
+    update((state) => ({ ...state, ...s }));
   }
 
   function send(msg: Message) {
@@ -38,11 +48,23 @@ function gameStore() {
     const msg = parse(ev.data);
     switch (msg.type) {
       case MessageType.AuthRes:
-        setState({ authorized: true });
+        setState({ authorized: true, playerID: msg.data.id });
         break;
-      case MessageType.EntityMap:
-        setState({ entities: msg.data });
+      case MessageType.SyncEntities: {
+        update((state) => {
+          const camCenter = msg.data
+            .find(e => e instanceof Player && e.id === state.playerID)
+            .pos;
+          const x = state.camSize.x / 2 - camCenter.x;
+          const y = state.camSize.y / 2 - camCenter.y;
+          const vpOffset = new Vec2(
+            x > 0 ? 0 : x,
+            y > 0 ? 0 : y,
+          );
+          return { ...state, entities: msg.data, vpOffset };
+        });
         break;
+      }
       default:
         break;
     }
@@ -50,8 +72,9 @@ function gameStore() {
 
   function sendDirection(direction: Vec2) {
     update((state) => {
-      if (!state.wsOpen) return state;
+      if (!(state.wsOpen && state.authorized)) return state;
       send({ type: MessageType.Direction, data: direction });
+      return state;
     });
   }
 

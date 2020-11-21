@@ -9,6 +9,7 @@ import cjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import copy from 'rollup-plugin-copy';
 import json from '@rollup/plugin-json';
+import alias from '@rollup/plugin-alias';
 
 import pkg from './package.json';
 
@@ -46,16 +47,17 @@ const client = {
   plugins: [
     svelte({
       dev: isDev,
-      css: (css) => {
-        css.write('bundle.css');
-      },
+      // css: (css) => {
+      //   css.write('bundle.css');
+      // },
       preprocess: preprocess(),
     }),
     ts({ tsconfig: 'client/tsconfig.json', tsconfigDefaults }),
     resolve({
       browser: true,
       dedupe: ['svelte'],
-      extensions: ['.mjs', '.js', '.json', '.node', '.ts'],
+      extensions: ['.js', '.ts'],
+      preferBuiltins: false,
     }),
     isDev && livereload('public/'),
     // !isDev && terser(),
@@ -65,6 +67,11 @@ const client = {
       ],
     }),
     cjs(),
+    alias({
+      entries: [
+        { find: 'common', replacement: '../../common' },
+      ],
+    }),
   ],
   watch: { clearScreen: false },
 };

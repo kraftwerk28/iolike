@@ -5,13 +5,14 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build:client": "NODE_ENV=production rollup -c",
+    "build": "NODE_ENV=production rollup -c",
     "start": "NODE_ENV=development rollup -cw"
   },
   "keywords": [],
   "author": "kraftwerk28 <kefirchik3@gmail.com>",
   "license": "ISC",
   "devDependencies": {
+    "@rollup/plugin-alias": "^3.1.1",
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-node-resolve": "^10.0.0",
@@ -32,6 +33,7 @@
     "typescript": "^4.0.5"
   },
   "dependencies": {
+    "buffer": "^6.0.2",
     "fastify": "^3.8.0",
     "fastify-static": "^3.3.0",
     "winston": "^3.3.3",

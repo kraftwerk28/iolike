@@ -1,10 +1,13 @@
 {
   "compilerOptions": {
+    "target": "ES6",
     "esModuleInterop": true,
     "baseUrl": "./",
+    "moduleResolution": "Node",
     "paths": {
       "common": ["common/"],
       "common/*": ["common/*"]
-    }
+    },
+    "downlevelIteration": true
   }
 }

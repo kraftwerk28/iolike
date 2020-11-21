@@ -26,6 +26,15 @@ export class Connections {
     }
   }
 
+  disconnect(player: Player) {
+    const socket = this.player2conn.get(player);
+    this.player2conn.delete(player);
+    if (socket) {
+      socket.close(1000);
+      this.conn2player.delete(socket);
+    }
+  }
+
   getSocket(player: Player) {
     return this.player2conn.get(player);
   }

@@ -17,8 +17,7 @@ async function main() {
 
   wsServer
     .on('connection', (socket) => gameState.onNewConnection(socket))
-    .on('error', (err) => log.error('WS error', err))
-    .on('listening', () => { log.info('Websocket bound') });
+    .on('error', (err) => log.error('WS error', err));
 
   app.listen(port, '0.0.0.0').then(() => {
     log.info('Server listening');

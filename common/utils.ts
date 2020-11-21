@@ -1,5 +1,6 @@
 import { Raw, UID, Chunk } from './types';
 import { INITIAL_RADIUS } from './constants';
+import { Vec2 } from './vec';
 
 const uidGen = (function*() {
   let i = 0;
@@ -10,39 +11,6 @@ const uidGen = (function*() {
 
 export const makeUID = (): UID => uidGen.next().value;
 
-export class Vec2 {
-  constructor(public x: number, public y: number) { }
-
-  static unpack(obj) {
-    const { x, y } = obj;
-    return new Vec2(x, y);
-  }
-
-  pack() {
-    return {
-      x: parseFloat(this.x.toFixed(2)),
-      y: parseFloat(this.y.toFixed(2)),
-    };
-  }
-
-  get length() {
-    return Math.sqrt(this.x ** 2 + this.y ** 2);
-  }
-
-  normalize() {
-    const l = this.length;
-    return new Vec2(this.x / l, this.y / l);
-  }
-
-  add(other: Vec2) {
-    return new Vec2(this.x + other.x, this.y + other.y);
-  }
-
-  static zero() {
-    return new Vec2(0, 0);
-  }
-}
-
 export function randomColor() {
   const { random, floor } = Math;
   const parts = Array(3).fill(null).map(() => floor(random() * 0x7f));
@@ -52,7 +20,7 @@ export function randomColor() {
     i = floor(random() * 3);
     parts[i] = 0xff - parts[i];
   }
-  return parts.reduce((a, c) => a + c);
+  return parts.reduce((a, c) => (a << 8) + c);
 }
 
 export function randomPos(
@@ -65,8 +33,29 @@ export function randomPos(
 }
 
 export class WorldGeometry {
-  constructor(public mapSize = 1, public chunkSize = 8) { }
+  constructor(public mapSize = 4, public chunkSize = 128) { }
   worldSize() {
     return this.mapSize * this.chunkSize;
   }
+}
+
+export function concatTyped(...arrays: Raw[]) {
+  const totalLen = arrays.reduce(
+    (acc, c) => acc + c.BYTES_PER_ELEMENT * c.length,
+    0,
+  );
+  const buff = Buffer.alloc(totalLen);
+  let offset = 0;
+  for (const arr of arrays) {
+    buff.set(arr, offset);
+    offset += arr.length * arr.BYTES_PER_ELEMENT;
+  }
+  return buff;
+}
+
+export function num2csscolor(n: number): string {
+  const r = (n & 0xff0000) >> 16;
+  const g = (n & 0x00ff00) >> 8;
+  const b = (n & 0x0000ff);
+  return `rgb(${r}, ${g}, ${b})`;
 }

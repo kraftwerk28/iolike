@@ -14,7 +14,7 @@ export class ChunkPool {
 
   put(entity: Entity) {
     const prevIndex = this.chunkIndexes.get(entity);
-    if (prevIndex) {
+    if (prevIndex !== undefined) {
       this.chunkIndexes.delete(entity);
       this.chunks[prevIndex].delete(entity);
     }
@@ -25,8 +25,9 @@ export class ChunkPool {
 
   delete(entity: Entity) {
     const index = this.chunkIndexes.get(entity);
-    if (!index) return;
-    this.chunks[index].delete(entity);
+    if (index !== undefined) {
+      this.chunks[index].delete(entity);
+    }
   }
 
   private getChunkIndex(

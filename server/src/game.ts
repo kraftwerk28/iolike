@@ -17,6 +17,7 @@ import {
 import { Args } from './args';
 
 export class GameState {
+
   private connections = new Connections;
   private chunkPool: ChunkPool;
   private food: Set<Food> = new Set;
